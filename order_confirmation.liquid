@@ -215,38 +215,47 @@
             <span class="order-list__item-refunded">Refunded</span>
           {% endif %}
 
-          {% if line.discount_allocations %}
-            {% for discount_allocation in line.discount_allocations %}
-              {% if discount_allocation.discount_application.target_selection != 'all' %}
-                <span class="order-list__item-discount-allocation">
-                  <img src="{{ 'notifications/discounttag.png' | shopify_asset_url }}" width="18" height="18" class="discount-tag-icon" />
-                  <span>
-                    {{ discount_allocation.discount_application.title | upcase }}
-                    (-{{ discount_allocation.amount | money }})
+          {% unless tags contains 'GIFT' %}
+            {% if line.discount_allocations %}
+              {% for discount_allocation in line.discount_allocations %}
+                {% if discount_allocation.discount_application.target_selection != 'all' %}
+                  <span class="order-list__item-discount-allocation">
+                    <img src="{{ 'notifications/discounttag.png' | shopify_asset_url }}" width="18" height="18" class="discount-tag-icon" />
+                    <span>
+                      {{ discount_allocation.discount_application.title | upcase }}
+                      (-{{ discount_allocation.amount | money }})
+                    </span>
                   </span>
-                </span>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          {% endunless %}
         </td>
           <td class="order-list__price-cell">
-            {% if line.original_line_price != line.final_line_price %}
-              <del class="order-list__item-original-price">{{ line.original_line_price | money }}</del>
-            {% endif %}
-            <p class="order-list__item-price">
-              {% if line.final_line_price > 0 %}
-                {{ line.final_line_price | money }}
-              {% else %}
-                Free
+            {% if tags contains 'GIFT' %}
+              <p class="order-list__item-price">
+                Gift
+              </p>
+            {% else %}
+              {% if line.original_line_price != line.final_line_price %}
+                <del class="order-list__item-original-price">{{ line.original_line_price | money }}</del>
               {% endif %}
-            </p>
+              <p class="order-list__item-price">
+                {% if line.final_line_price > 0 %}
+                  {{ line.final_line_price | money }}
+                {% else %}
+                  Free
+                {% endif %}
+              </p>
+            {% endif %}
           </td>
       </table>
     </td>
   </tr>{% endfor %}
 </table>
 
-            <table class="row subtotal-lines">
+{% unless tags contains 'GIFT' %}
+<table class="row subtotal-lines">
   <tr>
     <td class="subtotal-spacer"></td>
     <td>
@@ -376,7 +385,7 @@
 </tr>
 
       </table>
-
+      
       {% if total_discounts > 0 %}
         <p class="total-discount">
           You saved <span class="total-discount--amount">{{ total_discounts | money }}</span>
@@ -455,7 +464,7 @@
     </td>
   </tr>
 </table>
-
+{% endunless %}
           <table class="row section">
   <tr>
     <td class="section__cell">
@@ -479,12 +488,14 @@
                   {{ shipping_address | format_address }}
                 </td>
                 {% endif %}
-                {% if billing_address %}
-                <td class="customer-info__item">
-                  <h4>Billing address</h4>
-                  {{ billing_address | format_address }}
-                </td>
-                {% endif %}
+                {% unless tags contains 'GIFT' %}
+                  {% if billing_address %}
+                  <td class="customer-info__item">
+                    <h4>Billing address</h4>
+                    {{ billing_address | format_address }}
+                  </td>
+                  {% endif %}
+                {% endunless %}
               </tr>
             </table>
             <table class="row">
@@ -498,29 +509,31 @@
                 {% assign transaction_count = transactions | size %}
                 {% if transaction_count > 0 %}
                 <td class="customer-info__item">
-                  <h4>Payment method</h4>
-                  {% for transaction in transactions %}
-                    {% if transaction.status == "success" or transaction.status == "pending" %}
-                      {% if transaction.kind == "authorization" or transaction.kind == "sale" %}
-                        {% if transaction.payment_details.credit_card_company %}
-                            <p class="customer-info__item-content">
-                              <img src="{{ transaction.payment_details.credit_card_company | payment_icon_png_url  }}" class="customer-info__item-credit" height="24" alt="{{ transaction.payment_details.credit_card_company }}">
-                              <span>ending with {{ transaction.payment_details.credit_card_last_four_digits }} &mdash; <strong>{{ transaction.amount | money }}</strong></span>
-                            </p>
-                          {% elsif transaction.gateway_display_name == "Gift card" %}
-                          <p class="customer-info__item-content">
-                            <img src="{{ transaction.gateway_display_name | downcase | replace: ' ', '-'  | payment_type_img_url }}" class="customer-info__item-credit" height="24">
-                          ending with {{ transaction.payment_details.gift_card.last_four_characters | upcase }} &mdash; <strong>{{ transaction.amount | money }}</strong> <br />
-                            &emsp;&emsp;&emsp;&nbsp;Gift card balance: {{ transaction.payment_details.gift_card.balance |  money }}
-                          </p>
-                          {% else %}
+                  {% unless tags contains 'GIFT' %}
+                    <h4>Payment method</h4>
+                    {% for transaction in transactions %}
+                      {% if transaction.status == "success" or transaction.status == "pending" %}
+                        {% if transaction.kind == "authorization" or transaction.kind == "sale" %}
+                          {% if transaction.payment_details.credit_card_company %}
                               <p class="customer-info__item-content">
-                              {{ transaction.gateway_display_name }} &mdash; <strong>{{ transaction.amount | money }}</strong>
+                                <img src="{{ transaction.payment_details.credit_card_company | payment_icon_png_url  }}" class="customer-info__item-credit" height="24" alt="{{ transaction.payment_details.credit_card_company }}">
+                                <span>ending with {{ transaction.payment_details.credit_card_last_four_digits }} &mdash; <strong>{{ transaction.amount | money }}</strong></span>
                               </p>
-                          {% endif %}
-                  {% endif %}
+                            {% elsif transaction.gateway_display_name == "Gift card" %}
+                            <p class="customer-info__item-content">
+                              <img src="{{ transaction.gateway_display_name | downcase | replace: ' ', '-'  | payment_type_img_url }}" class="customer-info__item-credit" height="24">
+                            ending with {{ transaction.payment_details.gift_card.last_four_characters | upcase }} &mdash; <strong>{{ transaction.amount | money }}</strong> <br />
+                              &emsp;&emsp;&emsp;&nbsp;Gift card balance: {{ transaction.payment_details.gift_card.balance |  money }}
+                            </p>
+                            {% else %}
+                                <p class="customer-info__item-content">
+                                {{ transaction.gateway_display_name }} &mdash; <strong>{{ transaction.amount | money }}</strong>
+                                </p>
+                            {% endif %}
                     {% endif %}
-                  {% endfor %}
+                      {% endif %}
+                    {% endfor %}
+                  {% endunless %}
                 </td>
                 {% endif %}
               </tr>
