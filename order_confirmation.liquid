@@ -233,7 +233,9 @@
         </td>
           <td class="order-list__price-cell">
             {% if tags contains 'GIFT' %}
-              Gift
+              <p class="order-list__item-price">
+                Gift
+              </p>
             {% else %}
               {% if line.original_line_price != line.final_line_price %}
                 <del class="order-list__item-original-price">{{ line.original_line_price | money }}</del>
